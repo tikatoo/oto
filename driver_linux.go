@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
-// +build !android
-// +build !ios
+//go:build !js && !android && !ios
+// +build !js,!android,!ios
 
 package oto
 
@@ -59,6 +58,7 @@ import "C"
 
 import (
 	"fmt"
+	"os"
 	"unsafe"
 )
 
@@ -80,8 +80,14 @@ func newDriver(sampleRate, numChans, bitDepthInBytes, bufferSizeInBytes int) (tr
 		bitDepthInBytes: bitDepthInBytes,
 	}
 
+	// HACK: Pick an output device by environment
+	outputName := os.Getenv("OTO_OUTPUT_DEVICE")
+	if outputName == "" {
+		outputName = "default"
+	}
+
 	// open a default ALSA audio device for blocking stream playback
-	cs := C.CString("default")
+	cs := C.CString(outputName)
 	defer C.free(unsafe.Pointer(cs))
 	if errCode := C.snd_pcm_open(&p.handle, cs, C.SND_PCM_STREAM_PLAYBACK, 0); errCode < 0 {
 		return nil, alsaError(errCode)
